@@ -1,0 +1,409 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sikkim Ride & Stay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {font-family: Arial, sans-serif; background:#f2f4f7; padding:10px;}
+.container {max-width:480px; background:#fff; padding:20px; margin:auto; border-radius:12px; box-shadow:0 0 12px rgba(0,0,0,0.1);}
+h2,h3 {text-align:center; margin:5px 0;}
+button {width:100%; padding:12px; margin:8px 0; border:none; font-size:16px; border-radius:6px; cursor:pointer;}
+button.blue{background:#0d6efd;color:#fff;}
+button.green{background:#25D366;color:#fff;}
+button.gray{background:#6c757d;color:#fff;}
+input[type=number], input[type=date], input[type=file] {width:100%; padding:10px; margin:5px 0;}
+.section {display:none; margin-top:15px;}
+.result {text-align:center; font-weight:bold; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Sikkim Ride & Stay</h2>
+    <h3>Gurudongmar Tours & Travels</h3>
+
+    <!-- Buttons to show sections -->
+    <button class="blue" onclick="showSection('calculator')">Calculate Permit Cost</button>
+    <button class="blue" onclick="showSection('applyPermit')">Apply Permit</button>
+    <button class="blue" onclick="showSection('stay')">Book Stay</button>
+
+    <!-- Permit Cost Calculator -->
+    <div class="section" id="calculator">
+        <h3>Permit Cost Calculator</h3>
+        <label>Number of Bikes</label>
+        <input type="number" id="calcBikes" placeholder="Enter number of bikes">
+        <label>Permit Start Date</label>
+        <input type="date" id="calcStart">
+        <label>Permit End Date</label>
+        <input type="date" id="calcEnd">
+        <button class="gray" onclick="calculatePermitCost()">Calculate</button>
+        <div class="result" id="calcResult"></div>
+    </div>
+
+    <!-- Apply Permit Section -->
+    <div class="section" id="applyPermit">
+        <h3>Apply Permit</h3>
+        <label>Number of Bikes</label>
+        <input type="number" id="permitBikes" placeholder="Number of bikes" onchange="generateBikeInputs()">
+        <label>Number of Pillion</label>
+        <input type="number" id="permitPillion" placeholder="Number of pillion" onchange="generatePillionInputs()">
+        <label>Permit Start Date</label>
+        <input type="date" id="startDatePermit">
+        <label>Permit End Date</label>
+        <input type="date" id="endDatePermit">
+        
+        <div id="bikeUploads"></div>
+        <div id="pillionUploads"></div>
+
+        <button class="gray" onclick="calculatePermit()">Calculate Total</button>
+        <div class="result" id="permitTotal"></div>
+
+        <button class="green" onclick="submitPermit()">Submit via WhatsApp</button>
+    </div>
+
+    <!-- Stay Section -->
+    <div class="section" id="stay">
+        <h3>Book Stay at The Ginger House</h3>
+        <label>Number of Persons</label>
+        <input type="number" id="stayPersons" placeholder="Number of persons">
+        <label>Start Date</label>
+        <input type="date" id="stayStart">
+        <label>End Date</label>
+        <input type="date" id="stayEnd">
+        <label>Guest Phone Number</label>
+        <input type="number" id="guestPhone" placeholder="Guest WhatsApp/Phone">
+
+        <button class="gray" onclick="calculateStay()">Calculate Stay</button>
+        <div class="result" id="stayResult"></div>
+        <button class="green" onclick="submitStay()">Send Stay via WhatsApp</button>
+    </div>
+
+</div>
+
+<script>
+const RATE_BIKE = 200;
+const FIXED_PERMIT = 500;
+const STAY_RATE = 1000;
+
+// Show section
+function showSection(section){
+    ['calculator','applyPermit','stay'].forEach(id => {
+        document.getElementById(id).style.display = (id===section?'block':'none');
+    });
+}
+
+// --- Calculator ---
+function calculatePermitCost(){
+    let bikes = Number(document.getElementById("calcBikes").value);
+    let start = document.getElementById("calcStart").value;
+    let end = document.getElementById("calcEnd").value;
+    if(!bikes || !start || !end){document.getElementById("calcResult").innerText="Enter all fields"; return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = (bikes*days*RATE_BIKE)+FIXED_PERMIT;
+    document.getElementById("calcResult").innerText = `Total Days: ${days} | Total: ₹${total}`;
+}
+
+// --- Dynamic Upload Inputs ---
+function generateBikeInputs(){
+    let n = Number(document.getElementById("permitBikes").value);
+    let html="";
+    for(let i=1;i<=n;i++){
+        html+=`<h4>Bike ${i} Documents</h4>
+        <label>RC Front</label><input type="file" id="rcFront${i}" accept="image/*">
+        <label>RC Back</label><input type="file" id="rcBack${i}" accept="image/*">
+        <label>Rider Voter Front</label><input type="file" id="riderVoterFront${i}" accept="image/*">
+        <label>Rider Voter Back</label><input type="file" id="riderVoterBack${i}" accept="image/*">
+        <label>Rider DL Front</label><input type="file" id="riderDLFront${i}" accept="image/*">
+        <label>Rider DL Back</label><input type="file" id="riderDLBack${i}" accept="image/*">
+        <label>Rider Passport Photo</label><input type="file" id="riderPhoto${i}" accept="image/*"><br>`;
+    }
+    document.getElementById("bikeUploads").innerHTML = html;
+}
+
+function generatePillionInputs(){
+    let n = Number(document.getElementById("permitPillion").value);
+    let html="";
+    for(let i=1;i<=n;i++){
+        html+=`<h4>Pillion ${i} Documents</h4>
+        <label>Pillion Voter Front</label><input type="file" id="pillionVoterFront${i}" accept="image/*">
+        <label>Pillion Voter Back</label><input type="file" id="pillionVoterBack${i}" accept="image/*">
+        <label>Pillion Passport Photo</label><input type="file" id="pillionPhoto${i}" accept="image/*"><br>`;
+    }
+    document.getElementById("pillionUploads").innerHTML = html;
+}
+
+// --- Permit Calculation ---
+function calculatePermit(){
+    let bikes = Number(document.getElementById("permitBikes").value);
+    let start = document.getElementById("startDatePermit").value;
+    let end = document.getElementById("endDatePermit").value;
+    if(!bikes || !start || !end){document.getElementById("permitTotal").innerText="Enter bikes and dates"; return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = (bikes*days*RATE_BIKE)+FIXED_PERMIT;
+    document.getElementById("permitTotal").innerText=`Total Days: ${days} | Total: ₹${total}`;
+}
+
+// --- Submit Permit via WhatsApp ---
+function submitPermit(){
+    let bikes = Number(document.getElementById("permitBikes").value);
+    let pillions = Number(document.getElementById("permitPillion").value);
+    let start = document.getElementById("startDatePermit").value;
+    let end = document.getElementById("endDatePermit").value;
+    if(!bikes || !start || !end){alert("Enter bikes and dates"); return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = (bikes*days*RATE_BIKE)+FIXED_PERMIT;
+
+    let message = `Sikkim Ride & Stay - Permit Application%0AGurudongmar Tours & Travels%0A%0ANumber of Bikes: ${bikes}%0ANumber of Pillion: ${pillions}%0APermit Start: ${start}%0APermit End: ${end}%0ADays: ${days}%0ATotal: ₹${total}%0A%0ADocuments:%0A`;
+
+    for(let i=1;i<=bikes;i++){
+        message+=`Bike ${i} - RC Front: ${document.getElementById("rcFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - RC Back: ${document.getElementById("rcBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider Voter Front: ${document.getElementById("riderVoterFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider Voter Back: ${document.getElementById("riderVoterBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider DL Front: ${document.getElementById("riderDLFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider DL Back: ${document.getElementById("riderDLBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider Photo: ${document.getElementById("riderPhoto"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+    }
+
+    for(let i=1;i<=pillions;i++){
+        message+=`Pillion ${i} - Voter Front: ${document.getElementById("pillionVoterFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Pillion ${i} - Voter Back: ${document.getElementById("pillionVoterBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Pillion ${i} - Passport Photo: ${document.getElementById("pillionPhoto"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+    }
+
+    let phoneNumber = "918972923390";
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`,"_blank");
+}
+
+// --- Stay Calculation ---
+function calculateStay(){
+    let persons = Number(document.getElementById("stayPersons").value);
+    let start = document.getElementById("stayStart").value;
+    let end = document.getElementById("stayEnd").value;
+    if(!persons || !start || !end){document.getElementById("stayResult").innerText="Enter all fields"; return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = persons*days*STAY_RATE;
+    document.getElementById("stayResult").innerText=`Total Days: ${days} | Total: ₹${total}`;
+}
+
+// --- Submit Stay via WhatsApp ---
+function submitStay(){
+    let persons = Number(document.getElementById("stayPersons").value);
+    let start = document.getElementById("stayStart").value;
+    let end = document.getElementById("stayEnd").value;
+    let guestPhone = document.getElementById("guestPhone").value;
+    if(!persons || !start || !end || !guestPhone){alert("Enter all fields"); return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = persons*days*STAY_RATE;
+    let message = `Sikkim Ride & Stay - Stay Booking%0AGurudongmar Tours & Travels%0A%0APersons: ${persons}%0AStart: ${start}%0AEnd: ${end}%0ADays: ${days}%0ATotal: ₹${total}%0AGuest Phone: ${guestPhone}`;
+    window.open(`https://wa.me/${guestPhone}?text=${message}`,"_blank");
+}
+</script>
+
+</body>
+</html><!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sikkim Ride & Stay</title>
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<style>
+body {font-family: Arial, sans-serif; background:#f2f4f7; padding:10px;}
+.container {max-width:480px; background:#fff; padding:20px; margin:auto; border-radius:12px; box-shadow:0 0 12px rgba(0,0,0,0.1);}
+h2,h3 {text-align:center; margin:5px 0;}
+button {width:100%; padding:12px; margin:8px 0; border:none; font-size:16px; border-radius:6px; cursor:pointer;}
+button.blue{background:#0d6efd;color:#fff;}
+button.green{background:#25D366;color:#fff;}
+button.gray{background:#6c757d;color:#fff;}
+input[type=number], input[type=date], input[type=file] {width:100%; padding:10px; margin:5px 0;}
+.section {display:none; margin-top:15px;}
+.result {text-align:center; font-weight:bold; margin-top:10px;}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>Sikkim Ride & Stay</h2>
+    <h3>Gurudongmar Tours & Travels</h3>
+
+    <!-- Buttons to show sections -->
+    <button class="blue" onclick="showSection('calculator')">Calculate Permit Cost</button>
+    <button class="blue" onclick="showSection('applyPermit')">Apply Permit</button>
+    <button class="blue" onclick="showSection('stay')">Book Stay</button>
+
+    <!-- Permit Cost Calculator -->
+    <div class="section" id="calculator">
+        <h3>Permit Cost Calculator</h3>
+        <label>Number of Bikes</label>
+        <input type="number" id="calcBikes" placeholder="Enter number of bikes">
+        <label>Permit Start Date</label>
+        <input type="date" id="calcStart">
+        <label>Permit End Date</label>
+        <input type="date" id="calcEnd">
+        <button class="gray" onclick="calculatePermitCost()">Calculate</button>
+        <div class="result" id="calcResult"></div>
+    </div>
+
+    <!-- Apply Permit Section -->
+    <div class="section" id="applyPermit">
+        <h3>Apply Permit</h3>
+        <label>Number of Bikes</label>
+        <input type="number" id="permitBikes" placeholder="Number of bikes" onchange="generateBikeInputs()">
+        <label>Number of Pillion</label>
+        <input type="number" id="permitPillion" placeholder="Number of pillion" onchange="generatePillionInputs()">
+        <label>Permit Start Date</label>
+        <input type="date" id="startDatePermit">
+        <label>Permit End Date</label>
+        <input type="date" id="endDatePermit">
+        
+        <div id="bikeUploads"></div>
+        <div id="pillionUploads"></div>
+
+        <button class="gray" onclick="calculatePermit()">Calculate Total</button>
+        <div class="result" id="permitTotal"></div>
+
+        <button class="green" onclick="submitPermit()">Submit via WhatsApp</button>
+    </div>
+
+    <!-- Stay Section -->
+    <div class="section" id="stay">
+        <h3>Book Stay at The Ginger House</h3>
+        <label>Number of Persons</label>
+        <input type="number" id="stayPersons" placeholder="Number of persons">
+        <label>Start Date</label>
+        <input type="date" id="stayStart">
+        <label>End Date</label>
+        <input type="date" id="stayEnd">
+        <label>Guest Phone Number</label>
+        <input type="number" id="guestPhone" placeholder="Guest WhatsApp/Phone">
+
+        <button class="gray" onclick="calculateStay()">Calculate Stay</button>
+        <div class="result" id="stayResult"></div>
+        <button class="green" onclick="submitStay()">Send Stay via WhatsApp</button>
+    </div>
+
+</div>
+
+<script>
+const RATE_BIKE = 200;
+const FIXED_PERMIT = 500;
+const STAY_RATE = 1000;
+
+// Show section
+function showSection(section){
+    ['calculator','applyPermit','stay'].forEach(id => {
+        document.getElementById(id).style.display = (id===section?'block':'none');
+    });
+}
+
+// --- Calculator ---
+function calculatePermitCost(){
+    let bikes = Number(document.getElementById("calcBikes").value);
+    let start = document.getElementById("calcStart").value;
+    let end = document.getElementById("calcEnd").value;
+    if(!bikes || !start || !end){document.getElementById("calcResult").innerText="Enter all fields"; return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = (bikes*days*RATE_BIKE)+FIXED_PERMIT;
+    document.getElementById("calcResult").innerText = `Total Days: ${days} | Total: ₹${total}`;
+}
+
+// --- Dynamic Upload Inputs ---
+function generateBikeInputs(){
+    let n = Number(document.getElementById("permitBikes").value);
+    let html="";
+    for(let i=1;i<=n;i++){
+        html+=`<h4>Bike ${i} Documents</h4>
+        <label>RC Front</label><input type="file" id="rcFront${i}" accept="image/*">
+        <label>RC Back</label><input type="file" id="rcBack${i}" accept="image/*">
+        <label>Rider Voter Front</label><input type="file" id="riderVoterFront${i}" accept="image/*">
+        <label>Rider Voter Back</label><input type="file" id="riderVoterBack${i}" accept="image/*">
+        <label>Rider DL Front</label><input type="file" id="riderDLFront${i}" accept="image/*">
+        <label>Rider DL Back</label><input type="file" id="riderDLBack${i}" accept="image/*">
+        <label>Rider Passport Photo</label><input type="file" id="riderPhoto${i}" accept="image/*"><br>`;
+    }
+    document.getElementById("bikeUploads").innerHTML = html;
+}
+
+function generatePillionInputs(){
+    let n = Number(document.getElementById("permitPillion").value);
+    let html="";
+    for(let i=1;i<=n;i++){
+        html+=`<h4>Pillion ${i} Documents</h4>
+        <label>Pillion Voter Front</label><input type="file" id="pillionVoterFront${i}" accept="image/*">
+        <label>Pillion Voter Back</label><input type="file" id="pillionVoterBack${i}" accept="image/*">
+        <label>Pillion Passport Photo</label><input type="file" id="pillionPhoto${i}" accept="image/*"><br>`;
+    }
+    document.getElementById("pillionUploads").innerHTML = html;
+}
+
+// --- Permit Calculation ---
+function calculatePermit(){
+    let bikes = Number(document.getElementById("permitBikes").value);
+    let start = document.getElementById("startDatePermit").value;
+    let end = document.getElementById("endDatePermit").value;
+    if(!bikes || !start || !end){document.getElementById("permitTotal").innerText="Enter bikes and dates"; return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = (bikes*days*RATE_BIKE)+FIXED_PERMIT;
+    document.getElementById("permitTotal").innerText=`Total Days: ${days} | Total: ₹${total}`;
+}
+
+// --- Submit Permit via WhatsApp ---
+function submitPermit(){
+    let bikes = Number(document.getElementById("permitBikes").value);
+    let pillions = Number(document.getElementById("permitPillion").value);
+    let start = document.getElementById("startDatePermit").value;
+    let end = document.getElementById("endDatePermit").value;
+    if(!bikes || !start || !end){alert("Enter bikes and dates"); return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = (bikes*days*RATE_BIKE)+FIXED_PERMIT;
+
+    let message = `Sikkim Ride & Stay - Permit Application%0AGurudongmar Tours & Travels%0A%0ANumber of Bikes: ${bikes}%0ANumber of Pillion: ${pillions}%0APermit Start: ${start}%0APermit End: ${end}%0ADays: ${days}%0ATotal: ₹${total}%0A%0ADocuments:%0A`;
+
+    for(let i=1;i<=bikes;i++){
+        message+=`Bike ${i} - RC Front: ${document.getElementById("rcFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - RC Back: ${document.getElementById("rcBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider Voter Front: ${document.getElementById("riderVoterFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider Voter Back: ${document.getElementById("riderVoterBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider DL Front: ${document.getElementById("riderDLFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider DL Back: ${document.getElementById("riderDLBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Bike ${i} - Rider Photo: ${document.getElementById("riderPhoto"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+    }
+
+    for(let i=1;i<=pillions;i++){
+        message+=`Pillion ${i} - Voter Front: ${document.getElementById("pillionVoterFront"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Pillion ${i} - Voter Back: ${document.getElementById("pillionVoterBack"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+        message+=`Pillion ${i} - Passport Photo: ${document.getElementById("pillionPhoto"+i)?.files[0]?.name || 'Not uploaded'}%0A`;
+    }
+
+    let phoneNumber = "918972923390";
+    window.open(`https://wa.me/${phoneNumber}?text=${message}`,"_blank");
+}
+
+// --- Stay Calculation ---
+function calculateStay(){
+    let persons = Number(document.getElementById("stayPersons").value);
+    let start = document.getElementById("stayStart").value;
+    let end = document.getElementById("stayEnd").value;
+    if(!persons || !start || !end){document.getElementById("stayResult").innerText="Enter all fields"; return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = persons*days*STAY_RATE;
+    document.getElementById("stayResult").innerText=`Total Days: ${days} | Total: ₹${total}`;
+}
+
+// --- Submit Stay via WhatsApp ---
+function submitStay(){
+    let persons = Number(document.getElementById("stayPersons").value);
+    let start = document.getElementById("stayStart").value;
+    let end = document.getElementById("stayEnd").value;
+    let guestPhone = document.getElementById("guestPhone").value;
+    if(!persons || !start || !end || !guestPhone){alert("Enter all fields"); return;}
+    let days = Math.ceil((new Date(end)-new Date(start))/(1000*60*60*24))+1;
+    let total = persons*days*STAY_RATE;
+    let message = `Sikkim Ride & Stay - Stay Booking%0AGurudongmar Tours & Travels%0A%0APersons: ${persons}%0AStart: ${start}%0AEnd: ${end}%0ADays: ${days}%0ATotal: ₹${total}%0AGuest Phone: ${guestPhone}`;
+    window.open(`https://wa.me/${guestPhone}?text=${message}`,"_blank");
+}
+</script>
+
+</body>
+</html>
